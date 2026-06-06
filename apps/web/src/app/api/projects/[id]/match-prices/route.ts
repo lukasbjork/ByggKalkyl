@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { autoMatchTimeNorms } from "@/lib/match";
+import { autoMatchPrices } from "@/lib/match";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Auto-matcha tidsnormer mot poster som saknar koppling. */
+/** Auto-matcha priser (Resource) mot poster som saknar koppling. */
 export async function POST(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const result = await autoMatchTimeNorms(params.id);
+  const result = await autoMatchPrices(params.id);
   return NextResponse.json(result);
 }

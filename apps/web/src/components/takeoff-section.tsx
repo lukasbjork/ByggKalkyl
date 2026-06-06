@@ -41,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RunAll } from "@/components/run-all";
 
 export interface TakeoffDoc {
   id: string;
@@ -143,6 +144,9 @@ export function TakeoffSection({
 
   return (
     <div className="space-y-6">
+      {/* Ett-klick: kör hela kalkylen */}
+      <RunAll projectId={projectId} documents={documents} />
+
       {/* Automatisk mängdning per dokument */}
       <Card>
         <CardHeader>

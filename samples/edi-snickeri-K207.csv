@@ -1,0 +1,9 @@
+leverantor,artikelnr,benamning,enhet,bruttopris,varugrupp
+Snickerileverantör,SNB-PLY19,Björkplywood 19 mm möbelkvalitet,m2,480,Plywood
+Snickerileverantör,SNB-PLY24,Björkplywood 24 mm (P1) möbelkvalitet,m2,590,Plywood
+Snickerileverantör,SNB-PLY36,Björkplywood 36 mm dörrkvalitet,m2,890,Plywood
+Snickerileverantör,SNB-LIN4154,Möbellinoleum Forbo 4154 Burgundy,m2,420,Linoleum
+Snickerileverantör,SNB-REG4545,Konstruktionsregel 45x45,m,18,Virke
+Snickerileverantör,SNB-GANGJ,Gångjärn fjäder (svängdörr),st,320,Beslag
+Snickerileverantör,SNB-LACK,Ytbehandling lack halvmatt,m2,150,Ytbehandling
+Snickerileverantör,SNB-SKRUV,Infästning/skruv (montage),st,95,Infästning

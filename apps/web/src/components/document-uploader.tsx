@@ -29,6 +29,20 @@ export function DocumentUploader({ projectId }: { projectId: string }) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? "Uppladdningen misslyckades");
         }
+        // Auto-mängda pålitliga källor direkt (IFC/Excel). PDF (AI) körs via
+        // "Kör hela kalkylen" så att kvot/timeout hanteras kontrollerat.
+        const created = await res.json().catch(() => [] as { id: string; typ: string }[]);
+        for (const doc of created) {
+          if (doc.typ === "IFC" || doc.typ === "EXCEL") {
+            try {
+              await fetch(`/api/projects/${projectId}/documents/${doc.id}/takeoff`, {
+                method: "POST",
+              });
+            } catch {
+              /* ignoreras – kan köras om via Kör hela kalkylen */
+            }
+          }
+        }
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Något gick fel");

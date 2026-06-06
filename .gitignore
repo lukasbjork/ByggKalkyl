@@ -45,5 +45,10 @@ Thumbs.db
 .tmp/
 *.log
 
+# Testfiler (stora IFC/PDF + ev. konfidentiella kunddokument) – checka ALDRIG in
+testfiler/
+*_pid.txt
+.smoke_pid.txt
+
 # Local Netlify folder
 .netlify

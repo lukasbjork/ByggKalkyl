@@ -42,6 +42,9 @@ export async function POST(
     let created = 0;
     let info = "";
 
+    // Idempotent: ersätt dokumentets tidigare poster vid om-mängdning.
+    await prisma.takeoffItem.deleteMany({ where: { sourceDocumentId: doc.id } });
+
     if (doc.typ === "IFC") {
       const result = await parseIfc(buffer, doc.filnamn);
       created = await createTakeoffItems(doc.projectId, doc.id, "IFC", result.items);
