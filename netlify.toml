@@ -1,21 +1,20 @@
-# Netlify-konfiguration för apps/web (Next.js 14, App Router).
-# OBS: detta är INTE en static export – appen har API-routes + DB-åtkomst och
-# körs som serverless functions via @netlify/plugin-nextjs.
+# Netlify-konfiguration för apps/web (Next.js 14, App Router) – monorepo.
+# Byggs på Netlify (Linux CI) via GitHub-koppling – INTE lokalt (Windows kan inte
+# skapa symlinkar för Next standalone-output utan adminrättigheter).
 #
-# Förutsättningar i Netlify (Site settings → Environment):
-#   DATABASE_URL (Neon pooled), DIRECT_URL (Neon direkt),
-#   ANTHROPIC_API_KEY, ANTHROPIC_MODEL, IFC_SERVICE_URL (Render-URL),
-#   STORAGE_DRIVER=blobs
+# INTE static export – API-routes + DB körs som serverless functions via plugin.
 #
-# Monorepo: vi bygger från repo-roten med pnpm-workspace.
+# Env som måste sättas i Netlify (Site settings → Environment) – redan satta via CLI:
+#   DATABASE_URL, DIRECT_URL, GEMINI_API_KEY, AI_PROVIDER, GEMINI_MODEL,
+#   IFC_SERVICE_URL (Render), STORAGE_DRIVER=blobs
 
 [build]
-  command = "corepack enable && pnpm install --frozen-lockfile=false && pnpm --filter web prisma:generate && pnpm --filter web build"
-  publish = "apps/web/.next"
+  base = "apps/web"
+  command = "pnpm install --frozen-lockfile=false && pnpm build"
 
 [build.environment]
   NODE_VERSION = "20"
-  # Hoppa över lokal storage i prod – använd Netlify Blobs (sätts via env i UI).
 
+# Pluginet sätter rätt publish-katalog (.next) och paketerar serverless functions.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
