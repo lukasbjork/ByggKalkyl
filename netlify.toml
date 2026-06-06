@@ -11,6 +11,8 @@
 [build]
   base = "apps/web"
   command = "pnpm install --frozen-lockfile=false && pnpm build"
+  # publish relativt base (apps/web) → apps/web/.next. Överstyr ev. UI-värde.
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"

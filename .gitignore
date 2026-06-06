@@ -20,9 +20,9 @@ build/
 # Prisma
 # (schema och migrations checkas in; klienten genereras)
 
-# Lokal fillagring (uppladdade projektfiler)
-apps/web/storage/
-storage/
+# Lokal fillagring (uppladdade projektfiler) – ENDAST appens uppladdningskatalog.
+# OBS: ankra med inledande slash så att källkodsmappen src/lib/storage INTE ignoreras.
+/apps/web/storage/
 
 # Python (services/ifc)
 services/ifc/.venv/
