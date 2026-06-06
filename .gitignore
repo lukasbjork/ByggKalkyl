@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Production builds
+dist/
+build/
+
+# Env & secrets (ALDRIG checka in riktiga nycklar)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Prisma
+# (schema och migrations checkas in; klienten genereras)
+
+# Lokal fillagring (uppladdade projektfiler)
+apps/web/storage/
+storage/
+
+# Python (services/ifc)
+services/ifc/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Test/coverage
+coverage/
+playwright-report/
+test-results/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Tmp
+.tmp/
+*.log

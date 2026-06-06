@@ -1,0 +1,23 @@
+{
+  "name": "byggkalkyl",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ByggKalkyl – kalkylverktyg för byggföretag (mängdning, pris, tid, export).",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm --filter web lint",
+    "test": "pnpm --filter web test",
+    "e2e": "pnpm --filter web e2e",
+    "seed": "pnpm --filter web seed",
+    "prisma:generate": "pnpm --filter web prisma:generate",
+    "prisma:migrate": "pnpm --filter web prisma:migrate",
+    "prisma:deploy": "pnpm --filter web prisma:deploy",
+    "prisma:studio": "pnpm --filter web prisma:studio"
+  }
+}

@@ -1,0 +1,17 @@
+# Render-konfiguration för Python-mikrotjänsten services/ifc (FastAPI).
+# Deploya via https://render.com → New → Blueprint, peka på detta repo.
+services:
+  - type: web
+    name: byggkalkyl-ifc
+    runtime: docker
+    rootDir: services/ifc
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8000"
+      # Max sidor att rasterisera per PDF (kostnads-/minnesskydd).
+      - key: PDF_MAX_PAGES
+        value: "30"

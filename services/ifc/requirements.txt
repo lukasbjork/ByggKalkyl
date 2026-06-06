@@ -1,0 +1,9 @@
+# Python-beroenden för IFC/PDF-mikrotjänsten.
+# OBS: ifcopenshell/pymupdf kräver Python 3.12 (saknar ofta wheels för 3.14).
+# Lokalt:  uv venv --python 3.12  &&  uv pip install -r requirements.txt
+fastapi>=0.115,<0.116
+uvicorn[standard]>=0.32
+python-multipart>=0.0.12
+pydantic>=2.9
+ifcopenshell>=0.8.0
+pymupdf>=1.24.0

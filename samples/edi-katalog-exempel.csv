@@ -1,0 +1,9 @@
+leverantor,artikelnr,benamning,enhet,bruttopris,varugrupp
+Elgrossen,EG-1001,Installationskabel EQLQ 3x1.5,m,16.50,El-kabel
+Elgrossen,EG-1002,Installationskabel EQLQ 5x2.5,m,34.00,El-kabel
+Elgrossen,EG-2001,Dimmer LED,st,245.00,El-material
+Elgrossen,EG-2002,Jordfelsbrytare 2-pol 25A,st,520.00,El-material
+Elgrossen,EG-2003,Automatsäkring 16A,st,89.00,El-material
+Elgrossen,EG-3001,Kabelstege 200mm,m,185.00,Kabelförläggning
+Elgrossen,EG-3002,Kabelränna 100mm,m,95.00,Kabelförläggning
+Elgrossen,EG-4001,Spotlight infälld IP44,st,165.00,Belysning

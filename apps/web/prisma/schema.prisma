@@ -1,0 +1,256 @@
+// ByggKalkyl – datamodell.
+// Decimal överallt för pengar/mängd (aldrig float).
+// Källor och provider styrs av enums för tydlighet.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum DocumentType {
+  IFC
+  PDF
+  EXCEL
+  OTHER
+}
+
+enum DocumentStatus {
+  UPLOADED // uppladdad, ej bearbetad
+  PARSING // bearbetas (IFC/PDF/Excel)
+  PARSED // mängder framtagna
+  FAILED // bearbetning misslyckades
+}
+
+enum Unit {
+  st
+  m
+  m2
+  m3
+  kg
+  h
+}
+
+enum TakeoffSource {
+  IFC
+  AI_PDF
+  MANUAL
+  EXCEL
+}
+
+enum PriceProviderType {
+  INTERNAL
+  FINFO
+  EDI
+}
+
+enum ProjectStatus {
+  DRAFT
+  TAKEOFF // mängdning pågår
+  PRICED // priser/tider kopplade
+  CALCULATED // kalkyl körd
+  ARCHIVED
+}
+
+// ─── Kärnmodeller ────────────────────────────────────────────────────────────
+
+model Project {
+  id        String        @id @default(cuid())
+  namn      String
+  kund      String?
+  status    ProjectStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  dokument     ProjectDocument[]
+  takeoffItems TakeoffItem[]
+  settings     CalculationSettings?
+  resultat     CalculationResult[]
+}
+
+model ProjectDocument {
+  id              String         @id @default(cuid())
+  projectId       String
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filnamn         String
+  typ             DocumentType
+  lagringssokvag  String // nyckel/sökväg hos StorageService
+  storlekBytes    Int?
+  status          DocumentStatus @default(UPLOADED)
+  felmeddelande   String?
+  createdAt       DateTime       @default(now())
+
+  takeoffItems TakeoffItem[]
+
+  @@index([projectId])
+}
+
+/// En mängdad post (resultatet av mängdning, oavsett källa).
+model TakeoffItem {
+  id               String        @id @default(cuid())
+  projectId        String
+  project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceDocumentId String?
+  sourceDocument   ProjectDocument? @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+
+  kod        String? // t.ex. BSAB/egen kod
+  benamning  String // byggdel/benämning
+  mangd      Decimal @db.Decimal(18, 4)
+  enhet      Unit
+  lageskod   String? // lägeskod/placering
+  kalla      TakeoffSource
+  konfidens  Decimal? @db.Decimal(4, 3) // 0–1, null om ej AI
+  antagande  String? // AI:ns antagande/notering
+  granskad   Boolean  @default(false) // inget räknas förrän true
+
+  // Kopplingar (sätts vid prissättning/tidsnorm)
+  kopplatResourceId String?
+  kopplatResource   Resource? @relation(fields: [kopplatResourceId], references: [id], onDelete: SetNull)
+  kopplatTimeNormId String?
+  kopplatTimeNorm   TimeNorm? @relation(fields: [kopplatTimeNormId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([sourceDocumentId])
+}
+
+/// Material/artikel i prislistan.
+model Resource {
+  id         String            @id @default(cuid())
+  leverantor String
+  artikelnr  String? // RSK/E-nr/GTIN/EAN om finns
+  benamning  String
+  enhet      Unit
+  bruttopris Decimal           @db.Decimal(18, 4)
+  prisProvider PriceProviderType @default(INTERNAL)
+  varugrupp  String?
+  uppdaterad DateTime          @default(now()) @updatedAt
+
+  takeoffItems TakeoffItem[]
+
+  @@index([leverantor])
+  @@index([varugrupp])
+  @@index([artikelnr])
+}
+
+/// Rabattbrev: rabatt per leverantör (+ ev. varugrupp). varugrupp null = alla.
+model DiscountRule {
+  id            String   @id @default(cuid())
+  leverantor    String
+  varugrupp     String? // null = gäller alla varugrupper hos leverantören
+  rabattProcent Decimal  @db.Decimal(5, 2) // t.ex. 35.00 = 35 %
+  createdAt     DateTime @default(now())
+
+  @@index([leverantor])
+}
+
+/// Egen, redigerbar enhetstid (tidsnorm). EXEMPEL-data märks tydligt.
+model TimeNorm {
+  id             String   @id @default(cuid())
+  aktivitet      String // aktivitet/byggdel
+  enhet          Unit
+  timmarPerEnhet Decimal  @db.Decimal(10, 4)
+  tradeId        String
+  trade          Trade    @relation(fields: [tradeId], references: [id], onDelete: Restrict)
+  kod            String? // valfri matchningskod (BSAB/egen)
+  notering       String? // källa/notering
+  exempel        Boolean  @default(true) // true = EXEMPELDATA, ej egen norm
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  takeoffItems TakeoffItem[]
+
+  @@index([tradeId])
+  @@index([kod])
+}
+
+/// Yrke + timpris.
+model Trade {
+  id      String  @id @default(cuid())
+  namn    String  @unique
+  timpris Decimal @db.Decimal(10, 2)
+
+  timeNorms TimeNorm[]
+}
+
+/// Inställningar per projekt (påslag etc.).
+model CalculationSettings {
+  id                    String  @id @default(cuid())
+  projectId             String  @unique
+  project               Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  omkostnadProcent      Decimal @default(0) @db.Decimal(5, 2)
+  materialPaslagProcent Decimal @default(0) @db.Decimal(5, 2)
+  riskProcent           Decimal @default(0) @db.Decimal(5, 2)
+  arbetsdagTimmar       Decimal @default(8) @db.Decimal(4, 2)
+}
+
+/// Frusen ögonblicksbild av en kalkylkörning.
+model CalculationResult {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  // Vilken priskälla/läge som användes (för spårbarhet i offert).
+  prisProvider PriceProviderType @default(INTERNAL)
+  prislage     String? // fritext, t.ex. "Intern prislista 2026-06-06"
+
+  // Summor (frusna)
+  totalMaterial Decimal @db.Decimal(18, 2)
+  totalArbete   Decimal @db.Decimal(18, 2)
+  totalOmkostnad Decimal @db.Decimal(18, 2)
+  totalRisk     Decimal @db.Decimal(18, 2)
+  grandTotal    Decimal @db.Decimal(18, 2) // exkl. moms
+  totalArbetstimmar Decimal @db.Decimal(18, 2)
+  arbetsdagTimmar Decimal @db.Decimal(4, 2)
+
+  // Arbetstid per yrke som JSON: [{ trade, timmar, kostnad }]
+  tidPerYrke Json
+
+  linjer CalculationLine[]
+
+  @@index([projectId])
+}
+
+/// En rad i en frusen kalkyl (per TakeoffItem-snapshot).
+model CalculationLine {
+  id       String            @id @default(cuid())
+  resultId String
+  result   CalculationResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  // Snapshot av posten (frusen text/värden)
+  takeoffItemId String?
+  kod           String?
+  benamning     String
+  byggdel       String? // grupperingsnyckel
+  mangd         Decimal @db.Decimal(18, 4)
+  enhet         Unit
+
+  // Material
+  leverantor   String?
+  nettoApris   Decimal? @db.Decimal(18, 4)
+  materialkostnad Decimal @db.Decimal(18, 2)
+
+  // Arbete
+  yrke         String?
+  timmarPerEnhet Decimal? @db.Decimal(10, 4)
+  arbetstimmar Decimal  @db.Decimal(18, 4)
+  timpris      Decimal? @db.Decimal(10, 2)
+  arbetskostnad Decimal @db.Decimal(18, 2)
+
+  radtotal Decimal @db.Decimal(18, 2)
+
+  // Flaggor: saknar pris/tidsnorm (räknas inte tyst som 0)
+  saknarPris     Boolean @default(false)
+  saknarTidsnorm Boolean @default(false)
+
+  @@index([resultId])
+}

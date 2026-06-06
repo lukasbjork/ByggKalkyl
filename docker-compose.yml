@@ -1,0 +1,27 @@
+# Lokal PostgreSQL för dem som har Docker.
+# I denna miljö används istället Neon (moln) – men filen ingår per spec.
+# Kör:  docker compose up -d
+# Sätt sedan i .env:
+#   DATABASE_URL="postgresql://byggkalkyl:byggkalkyl@localhost:5432/byggkalkyl?schema=public"
+#   DIRECT_URL="postgresql://byggkalkyl:byggkalkyl@localhost:5432/byggkalkyl?schema=public"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: byggkalkyl-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: byggkalkyl
+      POSTGRES_PASSWORD: byggkalkyl
+      POSTGRES_DB: byggkalkyl
+    ports:
+      - "5432:5432"
+    volumes:
+      - byggkalkyl_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U byggkalkyl"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  byggkalkyl_pgdata:
