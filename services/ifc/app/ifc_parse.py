@@ -95,30 +95,23 @@ def _best_quantity(qsets: dict, kind: str) -> float | None:
     return net if net is not None else fallback
 
 
-def _bbox_dims(geom) -> tuple[float, float, float] | None:
+def _geom_dims(geom, scale: float) -> dict | None:
+    """area = produkt av två största bbox-mått (≈ footprint för bjälklag, ≈ sidoarea
+    för väggar), längd = största måttet, volym ur meshen."""
     verts = geom.verts
     if not verts:
         return None
     xs = verts[0::3]
     ys = verts[1::3]
     zs = verts[2::3]
-    return (max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs))
-
-
-def _geom_quantities(el, settings, scale: float) -> dict | None:
-    """Beräkna area/volym/längd ur geometrin. Area = produkten av de två största
-    bbox-måtten (≈ footprint för bjälklag, ≈ sidoarea för väggar)."""
-    try:
-        shape = ifc_geom.create_shape(settings, el)
-        geom = shape.geometry
-    except Exception:
-        return None
-    dims = _bbox_dims(geom)
-    if not dims:
-        return None
-    d = sorted((v * scale for v in dims), reverse=True)
-    area = d[0] * d[1]
-    length = d[0]
+    d = sorted(
+        [
+            (max(xs) - min(xs)) * scale,
+            (max(ys) - min(ys)) * scale,
+            (max(zs) - min(zs)) * scale,
+        ],
+        reverse=True,
+    )
     volume = 0.0
     try:
         import ifcopenshell.util.shape as ush
@@ -126,7 +119,39 @@ def _geom_quantities(el, settings, scale: float) -> dict | None:
         volume = float(ush.get_volume(geom)) * (scale ** 3)
     except Exception:
         volume = 0.0
-    return {"area": area, "length": length, "volume": volume}
+    return {"area": d[0] * d[1], "length": d[0], "volume": volume}
+
+
+def _compute_geometry(model, elements: list, scale: float) -> dict:
+    """Beräkna geometri-mängder för givna element via den parallella iteratorn
+    (mycket snabbare än create_shape i en Python-loop). Nyckel: STEP-id."""
+    out: dict[int, dict] = {}
+    if not elements:
+        return out
+    settings = ifc_geom.settings()
+    try:
+        import multiprocessing
+
+        threads = max(1, multiprocessing.cpu_count())
+    except Exception:
+        threads = 1
+    try:
+        it = ifc_geom.iterator(settings, model, threads, include=elements)
+    except Exception:
+        return out
+    if not it.initialize():
+        return out
+    while True:
+        shape = it.get()
+        try:
+            dims = _geom_dims(shape.geometry, scale)
+            if dims:
+                out[shape.id] = dims
+        except Exception:
+            pass
+        if not it.next():
+            break
+    return out
 
 
 def parse_ifc_quantities(path: str) -> dict:
@@ -136,15 +161,32 @@ def parse_ifc_quantities(path: str) -> dict:
     elements = [e for e in model.by_type("IfcElement") if e.is_a() not in SKIP_TYPES]
 
     use_geom = _GEOM_AVAILABLE and 0 < len(elements) <= GEOM_MAX_ELEMENTS
-    settings = ifc_geom.settings() if use_geom else None
     try:
         scale = ifc_unit.calculate_unit_scale(model) if use_geom else 1.0
     except Exception:
         scale = 1.0
 
-    geom_used = False
-    agg: dict[str, dict[str, float | bool]] = {}
+    # Pass 1: läs Qto per element och samla element som saknar mängder.
+    qto: dict[int, tuple] = {}
+    need_geom: list = []
+    for el in elements:
+        norm = _normalize_type(el.is_a())
+        try:
+            qsets = ifc_element.get_psets(el, qtos_only=True)
+        except Exception:
+            qsets = {}
+        a = _best_quantity(qsets, "area")
+        v = _best_quantity(qsets, "volume")
+        ln = _best_quantity(qsets, "length")
+        qto[el.id()] = (a, v, ln)
+        if use_geom and norm not in COUNT_TYPES and not (a or v or ln):
+            need_geom.append(el)
 
+    geom_by_id = _compute_geometry(model, need_geom, scale) if need_geom else {}
+    geom_used = bool(geom_by_id)
+
+    # Pass 2: aggregera per typ (med geometri-fallback).
+    agg: dict[str, dict[str, float | bool]] = {}
     for el in elements:
         norm = _normalize_type(el.is_a())
         bucket = agg.setdefault(
@@ -152,18 +194,9 @@ def parse_ifc_quantities(path: str) -> dict:
         )
         bucket["count"] += 1
 
-        try:
-            qsets = ifc_element.get_psets(el, qtos_only=True)
-        except Exception:
-            qsets = {}
-
-        area = _best_quantity(qsets, "area")
-        volume = _best_quantity(qsets, "volume")
-        length = _best_quantity(qsets, "length")
-
-        # Geometri-fallback om Qto saknas (ej för rena antals-typer).
-        if use_geom and norm not in COUNT_TYPES and not (area or volume or length):
-            g = _geom_quantities(el, settings, scale)
+        area, volume, length = qto[el.id()]
+        if not (area or volume or length):
+            g = geom_by_id.get(el.id())
             if g:
                 if norm in AREA_TYPES:
                     area = g["area"]
@@ -171,7 +204,6 @@ def parse_ifc_quantities(path: str) -> dict:
                     length = g["length"]
                 volume = g["volume"]
                 bucket["geom"] = True
-                geom_used = True
 
         if area:
             bucket["area"] += area
