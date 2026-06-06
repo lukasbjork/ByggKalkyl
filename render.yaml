@@ -10,8 +10,7 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: PORT
-        value: "8000"
+      # Render injicerar PORT automatiskt – Dockerfile binder $PORT.
       # Max sidor att rasterisera per PDF (kostnads-/minnesskydd).
       - key: PDF_MAX_PAGES
         value: "30"
