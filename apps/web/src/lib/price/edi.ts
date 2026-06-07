@@ -72,6 +72,7 @@ export class EdiCatalogProvider {
     const idx = {
       leverantor: header.indexOf("leverantor"),
       artikelnr: header.indexOf("artikelnr"),
+      gtin: header.indexOf("gtin"),
       benamning: header.indexOf("benamning"),
       enhet: header.indexOf("enhet"),
       bruttopris: header.indexOf("bruttopris"),
@@ -98,6 +99,7 @@ export class EdiCatalogProvider {
         continue;
       }
       const artikelnr = get(idx.artikelnr) || null;
+      const gtin = get(idx.gtin) || null;
       const enhet = toUnit(get(idx.enhet) || "st") ?? "st";
       const varugrupp = get(idx.varugrupp) || null;
 
@@ -113,6 +115,7 @@ export class EdiCatalogProvider {
           where: { id: existing.id },
           data: {
             benamning,
+            gtin,
             enhet,
             bruttopris: new Prisma.Decimal(brutto),
             varugrupp,
@@ -125,6 +128,7 @@ export class EdiCatalogProvider {
           data: {
             leverantor,
             artikelnr,
+            gtin,
             benamning,
             enhet,
             bruttopris: new Prisma.Decimal(brutto),

@@ -1,4 +1,9 @@
-import { DiscountRule } from "@prisma/client";
+/** Minsta form av ett rabattbrev (funkar med Prisma-rad eller testdata). */
+export interface DiscountRuleLike {
+  leverantor: string;
+  varugrupp: string | null;
+  rabattProcent: number | string | { toString(): string };
+}
 
 /**
  * Hitta tillämplig rabatt% för en resurs givet rabattbrev.
@@ -7,7 +12,7 @@ import { DiscountRule } from "@prisma/client";
 export function findDiscountPercent(
   leverantor: string,
   varugrupp: string | null,
-  rules: Pick<DiscountRule, "leverantor" | "varugrupp" | "rabattProcent">[],
+  rules: DiscountRuleLike[],
 ): number {
   const candidates = rules.filter(
     (r) =>

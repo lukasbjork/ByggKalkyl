@@ -126,7 +126,8 @@ model TakeoffItem {
 model Resource {
   id         String            @id @default(cuid())
   leverantor String
-  artikelnr  String? // RSK/E-nr/GTIN/EAN om finns
+  artikelnr  String? // leverantörens artikelnr (RSK/E-nr om el/VVS)
+  gtin       String? // GTIN/EAN – delas mellan leverantörer för samma fysiska artikel
   benamning  String
   enhet      Unit
   bruttopris Decimal           @db.Decimal(18, 4)
@@ -139,6 +140,7 @@ model Resource {
   @@index([leverantor])
   @@index([varugrupp])
   @@index([artikelnr])
+  @@index([gtin])
 }
 
 /// Rabattbrev: rabatt per leverantör (+ ev. varugrupp). varugrupp null = alla.

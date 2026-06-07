@@ -716,29 +716,36 @@ function PriceLinkDialog({ item }: { item: TakeoffItemLite }) {
                   </TableCell>
                 </TableRow>
               ) : (
-                results.map((r) => (
-                  <TableRow key={r.resourceId}>
-                    <TableCell className="font-medium">
-                      {r.benamning}
-                      <span className="block text-xs text-muted-foreground">
-                        {r.enhet} · {r.provider}
-                      </span>
-                    </TableCell>
-                    <TableCell>{r.leverantor}</TableCell>
-                    <TableCell className="text-right">{formatSEK(r.bruttopris)}</TableCell>
-                    <TableCell className="text-right">
-                      {r.rabattProcent > 0 ? `−${r.rabattProcent}%` : "–"}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatSEK(r.nettopris)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" onClick={() => link(r.resourceId)}>
-                        Välj
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                [...results]
+                  .sort((a, b) => a.nettopris - b.nettopris)
+                  .map((r, idx) => (
+                    <TableRow key={r.resourceId} className={idx === 0 ? "bg-emerald-50/60" : undefined}>
+                      <TableCell className="font-medium">
+                        {r.benamning}
+                        <span className="block text-xs text-muted-foreground">
+                          {r.enhet} · {r.provider}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {r.leverantor}
+                        {idx === 0 && results.length > 1 && (
+                          <Badge variant="success" className="ml-2">Billigast</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">{formatSEK(r.bruttopris)}</TableCell>
+                      <TableCell className="text-right">
+                        {r.rabattProcent > 0 ? `−${r.rabattProcent}%` : "–"}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatSEK(r.nettopris)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" onClick={() => link(r.resourceId)}>
+                          Välj
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
               )}
             </TableBody>
           </Table>
